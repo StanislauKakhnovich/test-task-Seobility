@@ -123,26 +123,31 @@ TextMessageAddFunc = () => {
 }
 
 submitForm = () =>{
-  let arrValidateFunction = [
-    this.NameAddFunc,
-    this.EmailAddFunc,
-    this.PhoneAddFunc,
-    this.BirthDayAddFunc,
-    this.TextMessageAddFunc
-  ];
-  let copy = [...arrValidateFunction];
-  if(copy.filter(func=>func()).length !== 5) {
-      console.log('Not ok validate form');
-      
-  } 
-  else {
-      console.log('Ok validate form');
-      this.postForm();
-  } 
+  if(this.state.dataReady) {
+    let arrValidateFunction = [
+      this.NameAddFunc,
+      this.EmailAddFunc,
+      this.PhoneAddFunc,
+      this.BirthDayAddFunc,
+      this.TextMessageAddFunc
+    ];
+    let copy = [...arrValidateFunction];
+    if(copy.filter(func=>func()).length !== 5) {
+        console.log('Not ok validate form');
+        
+    } 
+    else  {
+        this.setState( {dataReady: false});
+        console.log('Ok validate form');
+        this.postForm();
+    } 
+  }
+
 }
 
 
 postForm = async () => {
+  
     const USERS_URL = 'https://play-app-hurry.herokuapp.com/api/play'
     
     let data = {
@@ -162,17 +167,22 @@ postForm = async () => {
         },
         body: JSON.stringify(data),
     }
+    
 
     try{
+
         const response = await fetch (USERS_URL, settings);
         const data = await response.json();
         console.log("SEND SUCCESSFULLY");
         console.log(data);
-        this.setState( {formVisible: false, Name: "", Email: "", Phone: "", BirthDay: "", TextMessage: ""});
+        this.setState( {formVisible: false, Name: "", Email: "", Phone: "", BirthDay: "", TextMessage: "", dataReady: true});
         
     } catch (e) {
         console.log("SEND NOT SUCCESSFULLY", e);
-    }
+        this.setState( {dataReady: true});
+    
+  }
+
 }
 
   render() {
