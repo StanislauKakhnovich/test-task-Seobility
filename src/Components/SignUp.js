@@ -1,5 +1,4 @@
 import React from 'react';
-import PropTypes from 'prop-types';
 
 import './SignUp.sass';
 
@@ -11,6 +10,8 @@ class SignUp extends React.PureComponent {
     NameControl: false,
     Email: "",
     EmailControl: false,
+    Phone: "",
+    PhoneControl: false,
     BirthDay: "",
     BirthDayControl: false,
     TextMessage: "",
@@ -22,11 +23,12 @@ class SignUp extends React.PureComponent {
 
 NameAdd = (EO) => {
   EO.target.value=EO.target.value.toUpperCase();
+  EO.target.value=EO.target.value.replace(/\s+/g, " ");
   this.setState( {Name:EO.target.value}, this.NameAddFunc);
 }
 
 NameAddFunc = () => {
-  if(/\b[A-Z]{3,30}\b\s\b[A-Z]{3,30}\b/.test(this.state.Name)) {
+  if(/^\b[A-Z]{3,30}\b\s{1}?\b[A-Z]{3,30}\b$/.test(this.state.Name)) {
     this.setState( {NameControl: false });
     return true;
   }else {
@@ -41,13 +43,52 @@ EmailAdd = (EO) => {
 }
 
 EmailAddFunc = () => {
-  if(/^([A-Za-z0-9_\-\.])+\@([A-Za-z0-9_\-\.])+\.([A-Za-z]{2,4})$/.test(this.state.Email)) {
+  if(/^([A-Za-z0-9_\-.])+@([A-Za-z0-9_\-.])+\.([A-Za-z]{2,4})$/.test(this.state.Email)) {
     this.setState( {EmailControl:false} );
     return true;
   } else {
     this.setState( {EmailControl:true});
     return false;
   }
+}
+
+PhoneAdd = (EO) => {
+  EO.target.value=EO.target.value.replace(/\D/g, "");
+  let numberPhone = EO.target.value;
+  let formattedInputValue = " ";
+
+  let firstSimbol = numberPhone[0]==="7"?"+7":`+7${numberPhone[0]?numberPhone[0]:""}`;
+  formattedInputValue = firstSimbol + " ";
+  if(numberPhone.length > 1) {
+    formattedInputValue += "(" + numberPhone.substring(1, 4);
+  }
+  if(numberPhone.length >= 5) {
+    formattedInputValue += ") " + numberPhone.substring(4, 7);
+  }
+  if(numberPhone.length >= 8) {
+    formattedInputValue += "-" + numberPhone.substring(7, 9);
+  }
+  if(numberPhone.length >= 10) {
+      formattedInputValue += "-" + numberPhone.substring(9, 11);
+  }
+  EO.target.value = formattedInputValue; 
+    
+  this.setState( {Phone: formattedInputValue}, this.PhoneAddFunc );
+  
+}
+
+PhoneAddFunc = () => {
+  if(/\+7\s\(\d\d\d\)\s\d\d\d-\d\d-\d\d/.test(this.state.Phone)) {
+    this.setState( {PhoneControl:false} );
+    return true;
+  } else {
+    this.setState( {PhoneControl:true});
+    return false;
+  }
+}
+
+CleanSeven = (EO) => {
+  if(EO.keyCode === 8 && EO.target.value.length === 3) EO.target.value = "";
 }
 
 
@@ -85,11 +126,12 @@ submitForm = () =>{
   let arrValidateFunction = [
     this.NameAddFunc,
     this.EmailAddFunc,
+    this.PhoneAddFunc,
     this.BirthDayAddFunc,
     this.TextMessageAddFunc
   ];
   let copy = [...arrValidateFunction];
-  if(copy.filter(func=>func()).length!=4) {
+  if(copy.filter(func=>func()).length !== 5) {
       console.log('Not ok validate form');
       
   } 
@@ -104,7 +146,7 @@ postForm = async () => {
     const USERS_URL = 'https://play-app-hurry.herokuapp.com/api/play'
     
     let data = {
-        nameUser: `${this.state.Name}, ${this.state.Email}, ${this.state.BirthDay}, ${this.state.TextMessage}`,
+        nameUser: `${this.state.Name}, ${this.state.Email}, ${this.state.Phone}, ${this.state.BirthDay}, ${this.state.TextMessage}`,
         country: "",
         town: "",
         mail: "",
@@ -125,8 +167,8 @@ postForm = async () => {
         const response = await fetch (USERS_URL, settings);
         const data = await response.json();
         console.log("SEND SUCCESSFULLY");
-
-        this.setState( {formVisible: false, Name: "", Email: "", BirthDay: "", TextMessage: ""});
+        console.log(data);
+        this.setState( {formVisible: false, Name: "", Email: "", Phone: "", BirthDay: "", TextMessage: ""});
         
     } catch (e) {
         console.log("SEND NOT SUCCESSFULLY", e);
@@ -159,10 +201,10 @@ postForm = async () => {
           </div>
           <div className="clearfix">
               <label id="label-phone" htmlFor="phone">Номер телефона</label>
-              <div className="registration"><input  id="phone" type="tel" name="phone"  onChange={this.TownAdd}></input>
+              <div className="registration"><input  id="phone" type="tel" value={this.state.Phone} name="phone" maxLength={18}  onChange={this.PhoneAdd} onBlur={this.PhoneAdd} onKeyDown={this.CleanSeven} ></input>
                   {
-                    !this.state.Town&&
-                    <div className="ErrorValid">Поле не должно быть пустым.</div>
+                    this.state.PhoneControl&&
+                    <div className="ErrorValid">Введите корректно российский номер телефона.</div>
                   }
               </div>
           </div>
@@ -177,7 +219,7 @@ postForm = async () => {
           </div>
           <div className="clearfix">
               <label id="label-text-message" htmlFor="text-message">Сообщение</label>
-              <div className="registration"><input  id="text-message" type="text" value={this.state.TextMessage} name="message"  onChange={this.TextMessageAdd} onBlur={this.TextMessageAdd}></input>
+              <div className="registration"><input  id="text-message" type="text" value={this.state.TextMessage} maxLength={300} name="message"  onChange={this.TextMessageAdd} onBlur={this.TextMessageAdd}></input>
                   {
                     this.state.TextMessageControl&&
                     <div className="ErrorValid">Не менее 10 и не более 300 символов</div>
